@@ -36,6 +36,8 @@ const char* keywords[21] = {"class", "constructor", "method", "function"
 //global file pointer
 FILE* CurrentFile;
 
+int end_reached = 0;
+
 
 // IMPLEMENT THE FOLLOWING functions
 //***********************************
@@ -61,7 +63,6 @@ int InitLexer (char* file_name)
 
   //TODO: check if file is a JACK file
 
-
   return 1;
 }
 
@@ -75,61 +76,74 @@ Token GetNextToken ()
   token.tp = ERR;
 
   //c must be int to capture EOF correctly
-  int c = getc(CurrentFile);
+  int c = fgetc(CurrentFile);
 
   //skip through whitespace
   while(isspace(c)){
 
-    c = getc(CurrentFile);
+    c = fgetc(CurrentFile);
 
   }
 
 
-  //check for comments
+  //check for // comments
   if(c == '/'){
 
-    //printf("read first slash\n");
-    c = getc(CurrentFile);
+    c = fgetc(CurrentFile);
     if(c == '/'){
 
       //skip all writing until end of line or EOF
-      printf("line is a comment\n");
+      printf("line is a // comment\n");
 
-      while(c != '\n' || c != eof){
-        c = getc(CurrentFile);
+      while((c = fgetc(CurrentFile)) != '\n' && c != eof){
+        continue;
       }
-
-    }
-    else if(c == '*'){
-
-
-      //skip all writing until closing brace or eof
-      printf("line is a comment until closing\n");
-
-      while(c != eof){
-        if(c == '*'){
-          c = getc(CurrentFile);
-          if(c == '/'){
-            //end of comment
-            break;
-          }
-        }
-      }
+      //return next token recursively
+      return GetNextToken();
 
     }
     else{
 
-      printf("line is not a comment\n");
       ungetc(c, CurrentFile);
 
     }
+
+    //check for /* comments
+    if(c == '*'){
+      printf("line is a */ comment\n");
+
+      while((c = fgetc(CurrentFile)) != eof){
+
+        if(c == '*'){
+          printf("closing comment\n");
+          c = fgetc(CurrentFile);
+          if(c == '/'){
+            printf("closed comment\n");
+            //return next token recursively
+            return GetNextToken();
+          }
+          ungetc(c, CurrentFile);
+
+        }
+
+      }
+    }
+    else{
+
+      ungetc(c, CurrentFile);
+
+    }
+
+  }
+
+  if(c == eof){
+    end_reached = 1;
   }
 
 
+  printf("no comment!\n");
 
-
-
-
+  //create token here
 
   return token;
 }
@@ -158,11 +172,12 @@ int main ()
   InitLexer("Ball.jack");
 
   Token t = GetNextToken();
-  while (t.tp != eof){
+  while (!end_reached){
 
     t = GetNextToken();
 
   }
+
 
   
 	return 0;
