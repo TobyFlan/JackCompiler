@@ -38,6 +38,8 @@ FILE* CurrentFile;
 
 int end_reached = 0;
 
+int line_number = 0;
+
 
 // IMPLEMENT THE FOLLOWING functions
 //***********************************
@@ -81,6 +83,11 @@ Token GetNextToken ()
   //skip through whitespace
   while(isspace(c)){
 
+
+    if(c == '\n'){
+      line_number++;
+    }
+
     c = fgetc(CurrentFile);
 
   }
@@ -93,11 +100,12 @@ Token GetNextToken ()
     if(c == '/'){
 
       //skip all writing until end of line or EOF
-      printf("line is a // comment\n");
 
       while((c = fgetc(CurrentFile)) != '\n' && c != eof){
         continue;
       }
+
+      line_number++;
       //return next token recursively
       return GetNextToken();
 
@@ -110,9 +118,12 @@ Token GetNextToken ()
 
     //check for /* comments
     if(c == '*'){
-      printf("line is a */ comment\n");
 
       while((c = fgetc(CurrentFile)) != eof){
+
+        if(c == '\n'){
+          line_number++;
+        }
 
         if(c == '*'){
           printf("closing comment\n");
@@ -141,7 +152,104 @@ Token GetNextToken ()
   }
 
 
-  printf("no comment!\n");
+  //there is no comment
+
+
+  char* word = (char*)malloc(128*sizeof(char));
+  int word_i = 0;
+
+  //check for valid input identifier/keyword
+  if(isalpha(c) || c == '_'){
+
+    //while c is valid
+    while(isalpha(c) || isdigit(c) || c == '_'){
+
+      //store word dynamically
+      word[word_i] = c;
+      word_i++;
+
+      c = fgetc(CurrentFile);
+
+    }
+
+    //check if word is keyword
+    int i = 0;
+    for(i; i < 22; i++){
+
+      if(strcmp(word, keywords[i])){
+
+        //string is a kewyword
+        token.tp = RESWORD;
+        strcpy(token.lx, word);
+        token.ln = line_number;
+        token.ec = 0;
+
+        free(word);
+
+        return token;
+
+      }
+
+    }
+
+    //if not a keyword then string is identifier.
+    if(token.tp == ERR){
+
+      token.tp = ID;
+      strcpy(token.lx, word);
+      token.ln = line_number;
+      token.ec = 0;
+
+      free(word);
+
+      return token;
+
+    }
+
+  }
+
+  //check for number input
+  else if(isdigit(c)){
+
+    while(isdigit(c)){
+
+      //store word dynamically
+      word[word_i] = c;
+      word_i++;
+
+      c = fgetc(CurrentFile);
+
+    }
+
+    //error if a number is followed by characters or a _:
+    if(isalpha(c) || c == '_'){
+
+      token.tp = ERR;
+      token.ec = 1;
+      token.ln = line_number;
+
+      free(word);
+      return token;
+
+    }
+    else{
+
+      //token is valid int
+      token.tp = INT;
+      strcpy(token.lx, word);
+      token.ec = 0;
+      token.ln = line_number;
+
+      free(word);
+      return token;
+
+    }
+
+  }
+
+
+
+
 
   //create token here
 
@@ -174,6 +282,7 @@ int main ()
   Token t = GetNextToken();
   while (!end_reached){
 
+    printf("token lex, %s    token LN, %d \n", t.lx, t.ln);
     t = GetNextToken();
 
   }
