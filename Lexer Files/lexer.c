@@ -32,13 +32,16 @@ const char* keywords[21] = {"class", "constructor", "method", "function"
   "int", "boolean", "char", "void", "var", "static", "field", "let", "do"
   "if", "else", "while", "return", "true", "false", "null", "this"     };
 
+//clobal array of all symbols
+const int symbols[19] = {'(', ')', '[', ']', '{', '}', ',', ';', '=', 
+  '.', '+', '*', '/', '&', '|', '~', '<', '>'};
 
 //global file pointer
 FILE* CurrentFile;
 
 int end_reached = 0;
 
-int line_number = 0;
+int line_number = 1;
 
 
 // IMPLEMENT THE FOLLOWING functions
@@ -79,6 +82,19 @@ Token GetNextToken ()
 
   //c must be int to capture EOF correctly
   int c = fgetc(CurrentFile);
+
+  if(c == eof){
+
+    end_reached = 1;
+
+    token.tp = EOFile;
+    token.ec = 0;
+    token.ln = line_number;
+
+    return token;
+
+  }
+
 
   //skip through whitespace
   while(isspace(c)){
@@ -126,10 +142,8 @@ Token GetNextToken ()
         }
 
         if(c == '*'){
-          printf("closing comment\n");
           c = fgetc(CurrentFile);
           if(c == '/'){
-            printf("closed comment\n");
             //return next token recursively
             return GetNextToken();
           }
@@ -141,14 +155,19 @@ Token GetNextToken ()
     }
     else{
 
+      //else, is a / symbol
+
       ungetc(c, CurrentFile);
+
+      token.tp = SYMBOL;
+      sprintf(token.lx, "%c", c);
+      token.ec = 0;
+      token.ln = line_number;  
+
+      return token;    
 
     }
 
-  }
-
-  if(c == eof){
-    end_reached = 1;
   }
 
 
@@ -171,6 +190,7 @@ Token GetNextToken ()
       c = fgetc(CurrentFile);
 
     }
+
 
     //check if word is keyword
     int i = 0;
@@ -248,6 +268,22 @@ Token GetNextToken ()
   }
 
 
+  //check for symbol input
+  int i = 0;
+  for(i; i < 18; i++){
+
+    if(c == symbols[i]){
+
+      token.tp = SYMBOL;
+      sprintf(token.lx, "%c", c);
+      token.ec = 0;
+      token.ln = line_number;
+
+      return token;
+
+    }
+
+  }
 
 
 
