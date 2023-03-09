@@ -28,13 +28,13 @@ Date Work Commenced: 22/02/20j23
 
 
 //global array for all key words
-const char* keywords[21] = {"class", "constructor", "method", "function"
-  "int", "boolean", "char", "void", "var", "static", "field", "let", "do"
+const char* keywords[21] = {"class", "constructor", "method", "function",
+  "int", "boolean", "char", "void", "var", "static", "field", "let", "do",
   "if", "else", "while", "return", "true", "false", "null", "this"     };
 
 //clobal array of all symbols
-const int symbols[19] = {'(', ')', '[', ']', '{', '}', ',', ';', '=', 
-  '.', '+', '*', '/', '&', '|', '~', '<', '>'};
+const int symbols[20] = {'(', ')', '[', ']', '{', '}', ',', ';', '=', 
+  '.', '+', '*', '/', '&', '|', '~', '<', '>', '-'};
 
 //global file pointer
 FILE* CurrentFile;
@@ -43,6 +43,7 @@ int end_reached = 0;
 
 int line_number = 1;
 
+char* FileName;
 
 // IMPLEMENT THE FOLLOWING functions
 //***********************************
@@ -54,6 +55,13 @@ int line_number = 1;
 // if everything goes well the function should return 1
 int InitLexer (char* file_name)
 {
+
+  FileName = file_name;
+
+  line_number = 1;
+
+
+
 
   //ninimal error checking currently
   CurrentFile = fopen(file_name, "r");
@@ -80,6 +88,14 @@ Token GetNextToken ()
 	Token token;
   token.tp = ERR;
 
+  int x = 0;
+  for(x; x < 128; x++){
+
+    token.lx[x] = '\0';
+
+  }
+
+
   //c must be int to capture EOF correctly
   int c = fgetc(CurrentFile);
 
@@ -88,8 +104,10 @@ Token GetNextToken ()
     end_reached = 1;
 
     token.tp = EOFile;
+    strcpy(token.lx, "End Of File");
     token.ec = 0;
     token.ln = line_number;
+    strcpy(token.fl, FileName);
 
     return token;
 
@@ -105,6 +123,20 @@ Token GetNextToken ()
     }
 
     c = fgetc(CurrentFile);
+
+    if(c == eof){
+
+      end_reached = 1;
+
+      token.tp = EOFile;
+      strcpy(token.lx, "End Of File");
+      token.ec = 0;
+      token.ln = line_number;
+      strcpy(token.fl, FileName);
+
+      return token;
+
+    }
 
   }
 
@@ -150,7 +182,6 @@ Token GetNextToken ()
           ungetc(c, CurrentFile);
 
         }
-
       }
     }
     else{
@@ -160,9 +191,11 @@ Token GetNextToken ()
       ungetc(c, CurrentFile);
 
       token.tp = SYMBOL;
-      sprintf(token.lx, "%c", c);
+      sprintf(token.lx, "%c", '/');
+      //strcpy(token.lx, "/");
       token.ec = 0;
       token.ln = line_number;  
+      strcpy(token.fl, FileName);
 
       return token;    
 
@@ -173,8 +206,27 @@ Token GetNextToken ()
 
   //there is no comment
 
+  //check for symbol input
+  int i = 0;
+  for(i; i < 20; i++){
 
-  char* word = (char*)malloc(128*sizeof(char));
+    if(c == symbols[i]){
+
+      token.tp = SYMBOL;
+      sprintf(token.lx, "%c", c);
+      token.ec = 0;
+      token.ln = line_number;
+      strcpy(token.fl, FileName);
+
+      //free(word);
+
+      return token;
+
+    }
+
+  }
+
+  //char* word = (char*)malloc(128*sizeof(char));
   int word_i = 0;
 
   //check for valid input identifier/keyword
@@ -184,27 +236,30 @@ Token GetNextToken ()
     while(isalpha(c) || isdigit(c) || c == '_'){
 
       //store word dynamically
-      word[word_i] = c;
+      token.lx[word_i] = c;
       word_i++;
 
       c = fgetc(CurrentFile);
 
     }
 
+    ungetc(c, CurrentFile);
+
+
 
     //check if word is keyword
     int i = 0;
-    for(i; i < 22; i++){
+    for(i; i < 21; i++){
 
-      if(strcmp(word, keywords[i])){
+      if(!strcmp(token.lx, keywords[i])){
 
         //string is a kewyword
         token.tp = RESWORD;
-        strcpy(token.lx, word);
+        //strcpy(token.lx, word);
         token.ln = line_number;
         token.ec = 0;
+        strcpy(token.fl, FileName);
 
-        free(word);
 
         return token;
 
@@ -216,11 +271,12 @@ Token GetNextToken ()
     if(token.tp == ERR){
 
       token.tp = ID;
-      strcpy(token.lx, word);
+      // strcpy(token.lx, word);
       token.ln = line_number;
       token.ec = 0;
+      strcpy(token.fl, FileName);
 
-      free(word);
+      //free(word);
 
       return token;
 
@@ -234,12 +290,14 @@ Token GetNextToken ()
     while(isdigit(c)){
 
       //store word dynamically
-      word[word_i] = c;
+      token.lx[word_i] = c;
       word_i++;
 
       c = fgetc(CurrentFile);
 
     }
+    
+    ungetc(c, CurrentFile);
 
     //error if a number is followed by characters or a _:
     if(isalpha(c) || c == '_'){
@@ -247,8 +305,9 @@ Token GetNextToken ()
       token.tp = ERR;
       token.ec = 1;
       token.ln = line_number;
+      strcpy(token.fl, FileName);
 
-      free(word);
+      //free(word);
       return token;
 
     }
@@ -256,11 +315,12 @@ Token GetNextToken ()
 
       //token is valid int
       token.tp = INT;
-      strcpy(token.lx, word);
+      //strcpy(token.lx, word);
       token.ec = 0;
       token.ln = line_number;
+      strcpy(token.fl, FileName);
 
-      free(word);
+      //free(word);
       return token;
 
     }
@@ -268,26 +328,13 @@ Token GetNextToken ()
   }
 
 
-  //check for symbol input
-  int i = 0;
-  for(i; i < 18; i++){
 
-    if(c == symbols[i]){
-
-      token.tp = SYMBOL;
-      sprintf(token.lx, "%c", c);
-      token.ec = 0;
-      token.ln = line_number;
-
-      return token;
-
-    }
-
-  }
 
 
 
   //create token here
+
+  //free(word);
 
   return token;
 }
@@ -318,7 +365,7 @@ int main ()
   Token t = GetNextToken();
   while (!end_reached){
 
-    printf("token lex, %s    token LN, %d \n", t.lx, t.ln);
+    printf("token lex, %s    token LN, %d     token TP = %d\n", t.lx, t.ln, t.tp);
     t = GetNextToken();
 
   }
