@@ -409,30 +409,39 @@ Token GetNextToken ()
     }
 
   }
+  else{
 
+    //illegal symbol
+    token.ec = IllSym;
+    token.ln = line_number;
+    strcpy(token.lx, "Error: illegal symbol in source file");
 
+    return token;
 
+  }
 
-
-
-  //create token here
-
-  //free(word);
-
-  return token;
 }
 
 // peek (look) at the next token in the source file without removing it from the stream
 Token PeekNextToken ()
 {
   Token t;
-  t.tp = ERR;
+  fpos_t pos;
+  fgetpos(CurrentFile, &pos);
+  int currLine = line_number;
+  t = GetNextToken();
+  line_number = currLine;
+  fsetpos(CurrentFile, &pos);
   return t;
+
 }
 
 // clean out at end, e.g. close files, free memory, ... etc
 int StopLexer ()
 {
+
+  fclose(CurrentFile);
+
 	return 0;
 }
 
