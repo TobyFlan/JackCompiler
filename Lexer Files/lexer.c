@@ -41,7 +41,7 @@ FILE* CurrentFile;
 
 int end_reached = 0;
 
-int line_number = 1;
+int line_number;
 
 char* FileName;
 
@@ -88,6 +88,8 @@ Token GetNextToken ()
 	Token token;
   token.tp = ERR;
 
+  strcpy(token.fl, FileName);
+
   int x = 0;
   for(x; x < 128; x++){
 
@@ -107,7 +109,7 @@ Token GetNextToken ()
     strcpy(token.lx, "End Of File");
     token.ec = 0;
     token.ln = line_number;
-    strcpy(token.fl, FileName);
+    //strcpy(token.fl, FileName);
 
     return token;
 
@@ -132,7 +134,7 @@ Token GetNextToken ()
       strcpy(token.lx, "End Of File");
       token.ec = 0;
       token.ln = line_number;
-      strcpy(token.fl, FileName);
+      //strcpy(token.fl, FileName);
 
       return token;
 
@@ -149,9 +151,22 @@ Token GetNextToken ()
 
       //skip all writing until end of line or EOF
 
-      while((c = fgetc(CurrentFile)) != '\n' && c != eof){
-        continue;
+      while((c = fgetc(CurrentFile)) != '\n'){
+
+        if(c == eof){
+
+          //eof in comment error
+          token.ec = EofInCom;
+          token.ln = line_number;
+          strcpy(token.lx, "Error: unexpected eof in comment");
+
+          return token;
+
+        }
+
       }
+
+      
 
       line_number++;
       //return next token recursively
@@ -183,6 +198,16 @@ Token GetNextToken ()
 
         }
       }
+      if(c == eof){
+
+        //eof in comment error
+        token.ec = EofInCom;
+        token.ln = line_number;
+        strcpy(token.lx, "Error: unexpected eof in comment");
+
+        return token;
+
+      }
     }
     else{
 
@@ -195,7 +220,7 @@ Token GetNextToken ()
       //strcpy(token.lx, "/");
       token.ec = 0;
       token.ln = line_number;  
-      strcpy(token.fl, FileName);
+      //strcpy(token.fl, FileName);
 
       return token;    
 
@@ -216,7 +241,7 @@ Token GetNextToken ()
       sprintf(token.lx, "%c", c);
       token.ec = 0;
       token.ln = line_number;
-      strcpy(token.fl, FileName);
+      //strcpy(token.fl, FileName);
 
       //free(word);
 
@@ -225,6 +250,64 @@ Token GetNextToken ()
     }
 
   }
+
+  //check for string input
+
+  if(c == '"'){
+
+    //is a STRING!!!
+
+    int i = 0;
+    while((c = fgetc(CurrentFile)) != '"'){
+
+      //is a STRING!!!!
+
+      //error check if read EOF in string or newline in string
+      if(c == eof){
+
+        //eof in string error
+        token.ec = EofInStr;
+        token.ln = line_number;
+        //strcpy(token.fl, FileName);
+
+        strcpy(token.lx , "Error: unexpected eof in string constant");
+        
+        return token;
+
+      }
+
+      if(c == '\n'){
+
+        //newline in string error
+        token.ec = NewLnInStr;
+        token.ln = line_number;
+        //strcpy(token.fl, FileName);
+
+        strcpy(token.lx , "Error: new line in string constant");
+
+        return token;
+
+      }
+
+      token.lx[i] = c;
+
+      i++; 
+
+
+
+    }
+
+    //return string token
+    token.tp = STRING;
+    token.ec = 0;
+    //strcpy(token.fl, FileName);
+    token.ln = line_number;
+
+    return token;   
+
+
+  }
+
 
   //char* word = (char*)malloc(128*sizeof(char));
   int word_i = 0;
@@ -258,7 +341,7 @@ Token GetNextToken ()
         //strcpy(token.lx, word);
         token.ln = line_number;
         token.ec = 0;
-        strcpy(token.fl, FileName);
+        //strcpy(token.fl, FileName);
 
 
         return token;
@@ -274,7 +357,7 @@ Token GetNextToken ()
       // strcpy(token.lx, word);
       token.ln = line_number;
       token.ec = 0;
-      strcpy(token.fl, FileName);
+      //strcpy(token.fl, FileName);
 
       //free(word);
 
@@ -305,7 +388,7 @@ Token GetNextToken ()
       token.tp = ERR;
       token.ec = 1;
       token.ln = line_number;
-      strcpy(token.fl, FileName);
+      //strcpy(token.fl, FileName);
 
       //free(word);
       return token;
@@ -318,7 +401,7 @@ Token GetNextToken ()
       //strcpy(token.lx, word);
       token.ec = 0;
       token.ln = line_number;
-      strcpy(token.fl, FileName);
+      //strcpy(token.fl, FileName);
 
       //free(word);
       return token;
