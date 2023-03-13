@@ -427,7 +427,9 @@ Token PeekNextToken ()
 {
   Token t;
   fpos_t pos;
+  int c = fgetc(CurrentFile);
   fgetpos(CurrentFile, &pos);
+  ungetc(c, CurrentFile);
   int currLine = line_number;
   t = GetNextToken();
   line_number = currLine;
